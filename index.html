@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>究極の福笑いゲーム - スマホ・PC完全対応版</title>
+    <title>究極の福笑いゲーム - 完全版</title>
     <style>
         body {
             background-color: #1a1a1a;
@@ -14,13 +14,11 @@
             align-items: center;
             margin: 0;
             padding: 10px;
-            /* スマホで画面を引っ張った時のバウンスを防ぐ */
             overscroll-behavior: none;
         }
 
         h1 { font-size: 1.2rem; margin: 10px 0; color: #ffcc00; text-align: center; }
 
-        /* レイアウト：スマホでは縦、PCでは横 */
         .main-layout {
             display: flex;
             flex-direction: column;
@@ -32,11 +30,10 @@
             .main-layout { flex-direction: row; align-items: flex-start; justify-content: center; }
         }
 
-        /* ゲーム盤：画面幅に合わせて可変 */
         #game-board {
             position: relative;
             width: 95vw;
-            height: 105vw; /* 縦横比を固定 */
+            height: 105vw;
             max-width: 600px;
             max-height: 650px;
             background: #333;
@@ -44,10 +41,9 @@
             border-radius: 15px;
             overflow: hidden;
             background-image: radial-gradient(circle, #444 0%, #222 100%);
-            touch-action: none; /* ブラウザのスクロールを無効化 */
+            touch-action: none; /* スマホのスクロールを完全に止める */
         }
 
-        /* 見本エリア */
         .sample-container {
             width: 80vw;
             max-width: 250px;
@@ -59,7 +55,6 @@
         }
         #sample-image { width: 100%; border-radius: 5px; opacity: 0.9; }
 
-        /* 土台の顔 */
         #base-face {
             position: absolute;
             top: 50%;
@@ -70,18 +65,19 @@
             pointer-events: none;
         }
 
-        /* パーツ設定 */
         .part {
             position: absolute;
             cursor: grab;
             z-index: 10;
             user-select: none;
             touch-action: none;
-            width: 18%; /* 盤面に対する比率でサイズ固定 */
+            width: 18%;
+            /* PCでの画像の標準ドラッグ機能を無効化 */
+            -webkit-user-drag: none;
         }
         .part:active { cursor: grabbing; z-index: 100; }
 
-        /* 初期位置（バラバラに配置） */
+        /* 初期位置：少し散らす */
         #eye_left   { top: 5%; left: 5%; }
         #eye_right  { top: 5%; left: 25%; }
         #brow_left  { top: 5%; left: 45%; }
@@ -111,18 +107,18 @@
     
     <div class="main-layout">
         <div id="game-board">
-            <img src="base.png" id="base-face">
-            <img src="eye_left.png"   id="eye_left"   class="part">
-            <img src="eye_right.png"  id="eye_right"  class="part">
-            <img src="brow_left.png"  id="brow_left"  class="part">
-            <img src="brow_right.png" id="brow_right" class="part">
-            <img src="nose.png"       id="nose"       class="part">
-            <img src="mouth.png"      id="mouth"      class="part">
+            <img src="base.png" id="base-face" draggable="false">
+            <img src="eye_left.png"   id="eye_left"   class="part" draggable="false">
+            <img src="eye_right.png"  id="eye_right"  class="part" draggable="false">
+            <img src="brow_left.png"  id="brow_left"  class="part" draggable="false">
+            <img src="brow_right.png" id="brow_right" class="part" draggable="false">
+            <img src="nose.png"       id="nose"       class="part" draggable="false">
+            <img src="mouth.png"      id="mouth"      class="part" draggable="false">
         </div>
 
         <div class="sample-container">
             <h3 style="margin:0; font-size: 0.9rem; color: #00ffcc;">お手本</h3>
-            <img src="sample.png" id="sample-image">
+            <img src="sample.png" id="sample-image" draggable="false">
         </div>
     </div>
 
@@ -132,7 +128,6 @@
     </div>
 
     <script>
-        // 正解の比率 (0.0～1.0) 画面サイズが変わっても対応可能
         const correctRatio = {
             eye_left:   { x: 0.40, y: 0.47 },
             eye_right:  { x: 0.60, y: 0.47 },
@@ -152,6 +147,9 @@
         }
 
         function startDrag(e) {
+            // これが重要！ブラウザの画像保存機能をブロックする
+            if (e.cancelable) e.preventDefault();
+            
             activePart = e.target;
             const pos = getEventPos(e);
             const rect = activePart.getBoundingClientRect();
@@ -161,7 +159,7 @@
 
         function moveDrag(e) {
             if (!activePart) return;
-            // スマホのスクロールを防止
+            // ドラッグ中のスクロールを防止
             if (e.cancelable) e.preventDefault();
 
             const pos = getEventPos(e);
@@ -176,6 +174,7 @@
 
         function endDrag() { activePart = null; }
 
+        // マウスとタッチの両方のイベントを設定
         document.querySelectorAll('.part').forEach(part => {
             part.addEventListener('mousedown', startDrag);
             part.addEventListener('touchstart', startDrag, {passive: false});
@@ -194,7 +193,6 @@
             parts.forEach(id => {
                 const el = document.getElementById(id);
                 const rect = el.getBoundingClientRect();
-                // 中心の位置を比率(0～1)に変換
                 const curX = (rect.left - board.left + rect.width / 2) / board.width;
                 const curY = (rect.top - board.top + rect.height / 2) / board.height;
 
@@ -204,12 +202,11 @@
             });
 
             const avgDiff = totalDiff / parts.length;
-            // 採点：100点からズレを引く（500は厳しさの調整係数）
             let score = Math.max(0, 100 - Math.floor(avgDiff * 500));
             document.getElementById('result').innerText = `完成度: ${score}%`;
             if(score === 100) alert("完璧です！おめでとう！");
         }
     </script>
 </body>
-</html>]
+</html>
 
