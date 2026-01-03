@@ -2,7 +2,8 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>究極の福笑いゲーム - 見本付き</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>究極の福笑いゲーム - スマホ・PC完全対応版</title>
     <style>
         body {
             background-color: #1a1a1a;
@@ -12,50 +13,51 @@
             flex-direction: column;
             align-items: center;
             margin: 0;
-            padding-bottom: 50px;
+            padding: 10px;
+            /* スマホで画面を引っ張った時のバウンスを防ぐ */
+            overscroll-behavior: none;
         }
 
-        h1 { margin: 10px 0; color: #ffcc00; }
+        h1 { font-size: 1.2rem; margin: 10px 0; color: #ffcc00; text-align: center; }
 
-        /* 全体レイアウト：ゲーム盤と見本を横に並べる */
+        /* レイアウト：スマホでは縦、PCでは横 */
         .main-layout {
             display: flex;
-            gap: 20px;
-            align-items: flex-start;
-            justify-content: center;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
             width: 100%;
-            max-width: 1100px;
+        }
+        @media (min-width: 900px) {
+            .main-layout { flex-direction: row; align-items: flex-start; justify-content: center; }
         }
 
-        /* ゲーム盤 */
+        /* ゲーム盤：画面幅に合わせて可変 */
         #game-board {
             position: relative;
-            width: 650px;
-            height: 700px;
+            width: 95vw;
+            height: 105vw; /* 縦横比を固定 */
+            max-width: 600px;
+            max-height: 650px;
             background: #333;
-            border: 5px solid #555;
+            border: 4px solid #555;
             border-radius: 15px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            overflow: hidden;
             background-image: radial-gradient(circle, #444 0%, #222 100%);
+            touch-action: none; /* ブラウザのスクロールを無効化 */
         }
 
         /* 見本エリア */
         .sample-container {
-            width: 300px;
-            text-align: center;
+            width: 80vw;
+            max-width: 250px;
             background: #2a2a2a;
-            padding: 15px;
+            padding: 10px;
             border-radius: 10px;
             border: 2px dashed #666;
+            text-align: center;
         }
-
-        .sample-container h3 { margin-top: 0; color: #00ffcc; }
-
-        #sample-image {
-            width: 100%;
-            border-radius: 5px;
-            opacity: 0.9;
-        }
+        #sample-image { width: 100%; border-radius: 5px; opacity: 0.9; }
 
         /* 土台の顔 */
         #base-face {
@@ -63,70 +65,53 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 95%;
-            opacity: 0.8;
+            width: 90%;
+            opacity: 0.7;
             pointer-events: none;
         }
 
-        /* パーツの共通設定 */
+        /* パーツ設定 */
         .part {
             position: absolute;
             cursor: grab;
             z-index: 10;
             user-select: none;
-            -webkit-user-drag: none;
+            touch-action: none;
+            width: 18%; /* 盤面に対する比率でサイズ固定 */
         }
-
         .part:active { cursor: grabbing; z-index: 100; }
 
-        /* 初期位置：見本と被らないように左側に縦に並べる */
-        #eye_left   { width: 100px; top: 20px;  left: 10px; }
-        #eye_right  { width: 100px; top: 80px;  left: 10px; }
-        #brow_left  { width: 90px;  top: 140px; left: 10px; }
-        #brow_right { width: 90px;  top: 200px; left: 10px; }
-        #nose       { width: 75px;  top: 270px; left: 10px; }
-        #mouth      { width: 120px; top: 360px; left: 10px; }
+        /* 初期位置（バラバラに配置） */
+        #eye_left   { top: 5%; left: 5%; }
+        #eye_right  { top: 5%; left: 25%; }
+        #brow_left  { top: 5%; left: 45%; }
+        #brow_right { top: 5%; left: 65%; }
+        #nose       { top: 15%; left: 5%; width: 12%; }
+        #mouth      { top: 15%; left: 25%; width: 22%; }
 
-        /* 操作パネル */
-        .controls {
-            margin-top: 20px;
-            text-align: center;
-        }
-
+        .controls { margin-top: 20px; }
         button {
-            padding: 15px 50px;
-            font-size: 22px;
+            padding: 12px 40px;
+            font-size: 1.2rem;
             font-weight: bold;
             background: linear-gradient(to bottom, #ffcc00, #ff9900);
             border: none;
-            border-radius: 35px;
+            border-radius: 30px;
+            color: #000;
             cursor: pointer;
-            box-shadow: 0 4px #cc7700;
+            box-shadow: 0 4px #b36b00;
         }
-
-        button:hover { filter: brightness(1.1); }
-        button:active {
-            transform: translateY(3px);
-            box-shadow: 0 1px #cc7700;
-        }
-
-        #result {
-            font-size: 40px;
-            margin-top: 15px;
-            color: #00ffcc;
-            font-weight: bold;
-            text-shadow: 0 0 10px rgba(0,255,204,0.3);
-        }
+        button:active { transform: translateY(2px); box-shadow: 0 2px #b36b00; }
+        #result { font-size: 1.8rem; margin-top: 10px; color: #00ffcc; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h1>究極の福笑い：見本を見て配置しろ！</h1>
+    <h1>究極の福笑い</h1>
     
     <div class="main-layout">
         <div id="game-board">
             <img src="base.png" id="base-face">
-            
             <img src="eye_left.png"   id="eye_left"   class="part">
             <img src="eye_right.png"  id="eye_right"  class="part">
             <img src="brow_left.png"  id="brow_left"  class="part">
@@ -136,72 +121,95 @@
         </div>
 
         <div class="sample-container">
-            <h3>お手本（見本）</h3>
+            <h3 style="margin:0; font-size: 0.9rem; color: #00ffcc;">お手本</h3>
             <img src="sample.png" id="sample-image">
-            <p style="font-size: 12px; color: #888; margin-top: 10px;">これと同じ位置に配置してね</p>
         </div>
     </div>
 
     <div class="controls">
-        <button onclick="calculateScore()">採点する</button>
+        <button onclick="calculateScore()">採点する！</button>
         <div id="result">完成度: -- %</div>
     </div>
 
     <script>
-        // --- 正解の座標 (game-board内での中心座標。ベース顔に合わせて調整してください) ---
-        const correctPos = {
-            eye_left:   { x: 260, y: 330 },
-            eye_right:  { x: 390, y: 330 },
-            brow_left:  { x: 260, y: 280 },
-            brow_right: { x: 390, y: 280 },
-            nose:       { x: 325, y: 420 },
-            mouth:      { x: 325, y: 530 }
+        // 正解の比率 (0.0～1.0) 画面サイズが変わっても対応可能
+        const correctRatio = {
+            eye_left:   { x: 0.40, y: 0.47 },
+            eye_right:  { x: 0.60, y: 0.47 },
+            brow_left:  { x: 0.40, y: 0.40 },
+            brow_right: { x: 0.60, y: 0.40 },
+            nose:       { x: 0.50, y: 0.60 },
+            mouth:      { x: 0.50, y: 0.75 }
         };
 
         let activePart = null;
         let offset = { x: 0, y: 0 };
 
-        document.querySelectorAll('.part').forEach(part => {
-            part.addEventListener('mousedown', (e) => {
-                activePart = part;
-                const rect = part.getBoundingClientRect();
-                offset.x = e.clientX - rect.left;
-                offset.y = e.clientY - rect.top;
-            });
-        });
+        function getEventPos(e) {
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clientX, y: clientY };
+        }
 
-        document.addEventListener('mousemove', (e) => {
+        function startDrag(e) {
+            activePart = e.target;
+            const pos = getEventPos(e);
+            const rect = activePart.getBoundingClientRect();
+            offset.x = pos.x - rect.left;
+            offset.y = pos.y - rect.top;
+        }
+
+        function moveDrag(e) {
             if (!activePart) return;
+            // スマホのスクロールを防止
+            if (e.cancelable) e.preventDefault();
+
+            const pos = getEventPos(e);
             const board = document.getElementById('game-board').getBoundingClientRect();
-            let x = e.clientX - board.left - offset.x;
-            let y = e.clientY - board.top - offset.y;
+            
+            let x = pos.x - board.left - offset.x;
+            let y = pos.y - board.top - offset.y;
+            
             activePart.style.left = x + 'px';
             activePart.style.top = y + 'px';
+        }
+
+        function endDrag() { activePart = null; }
+
+        document.querySelectorAll('.part').forEach(part => {
+            part.addEventListener('mousedown', startDrag);
+            part.addEventListener('touchstart', startDrag, {passive: false});
         });
 
-        document.addEventListener('mouseup', () => { activePart = null; });
+        document.addEventListener('mousemove', moveDrag);
+        document.addEventListener('touchmove', moveDrag, {passive: false});
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
 
         function calculateScore() {
             let totalDiff = 0;
-            const parts = Object.keys(correctPos);
+            const board = document.getElementById('game-board').getBoundingClientRect();
+            const parts = Object.keys(correctRatio);
+
             parts.forEach(id => {
                 const el = document.getElementById(id);
                 const rect = el.getBoundingClientRect();
-                const board = document.getElementById('game-board').getBoundingClientRect();
-                const curX = rect.left - board.left + rect.width / 2;
-                const curY = rect.top - board.top + rect.height / 2;
-                const dx = curX - correctPos[id].x;
-                const dy = curY - correctPos[id].y;
+                // 中心の位置を比率(0～1)に変換
+                const curX = (rect.left - board.left + rect.width / 2) / board.width;
+                const curY = (rect.top - board.top + rect.height / 2) / board.height;
+
+                const dx = curX - correctRatio[id].x;
+                const dy = curY - correctRatio[id].y;
                 totalDiff += Math.sqrt(dx * dx + dy * dy);
             });
 
             const avgDiff = totalDiff / parts.length;
-            // 難易度調整（分母の数値を小さくすると採点が厳しくなります）
-            let score = Math.max(0, 100 - Math.floor(avgDiff / 3.5));
+            // 採点：100点からズレを引く（500は厳しさの調整係数）
+            let score = Math.max(0, 100 - Math.floor(avgDiff * 500));
             document.getElementById('result').innerText = `完成度: ${score}%`;
-
-            if(score === 100) alert("100%！完璧です！");
+            if(score === 100) alert("完璧です！おめでとう！");
         }
     </script>
 </body>
-</html>
+</html>]
+
