@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>究極の福笑い - 超スムーズ版</title>
+    <title>究極の福笑い - やり直し機能付き</title>
     <style>
         body {
             background-color: #1a1a1a;
@@ -14,7 +14,7 @@
             align-items: center;
             margin: 0;
             padding: 10px;
-            overflow: hidden; /* 画面全体の揺れを防止 */
+            overflow: hidden;
             touch-action: none;
         }
 
@@ -70,13 +70,14 @@
             cursor: grab;
             z-index: 10;
             width: 18%;
-            /* 動きを滑らかにする魔法のプロパティ */
             touch-action: none;
             user-select: none;
             -webkit-user-drag: none;
             will-change: transform;
+            /* リセット時の動きを滑らかにする */
+            transition: transform 0.3s ease-out;
         }
-        .part:active { cursor: grabbing; z-index: 100; }
+        .part:active { cursor: grabbing; z-index: 100; transition: none; }
 
         /* 初期位置 */
         #eye_left   { top: 5%; left: 5%; }
@@ -86,16 +87,25 @@
         #nose       { top: 15%; left: 5%; width: 12%; }
         #mouth      { top: 15%; left: 25%; width: 22%; }
 
-        .controls { margin-top: 20px; }
+        .controls { margin-top: 20px; display: flex; gap: 10px; }
+        
         button {
-            padding: 12px 40px;
-            font-size: 1.2rem;
+            padding: 12px 25px;
+            font-size: 1.1rem;
             font-weight: bold;
-            background: linear-gradient(to bottom, #ffcc00, #ff9900);
             border: none;
             border-radius: 30px;
             cursor: pointer;
+            box-shadow: 0 4px rgba(0,0,0,0.3);
         }
+
+        /* 採点ボタンの色 */
+        .btn-score { background: linear-gradient(to bottom, #ffcc00, #ff9900); color: #000; }
+        /* やり直しボタンの色（グレー系） */
+        .btn-reset { background: linear-gradient(to bottom, #999, #666); color: #fff; }
+
+        button:active { transform: translateY(2px); box-shadow: none; }
+        
         #result { font-size: 1.8rem; margin-top: 10px; color: #00ffcc; font-weight: bold; }
     </style>
 </head>
@@ -121,9 +131,10 @@
     </div>
 
     <div class="controls">
-        <button onclick="calculateScore()">採点する！</button>
-        <div id="result">完成度: -- %</div>
+        <button class="btn-score" onclick="calculateScore()">採点！</button>
+        <button class="btn-reset" onclick="resetGame()">やり直し</button>
     </div>
+    <div id="result">完成度: -- %</div>
 
     <script>
         const correctRatio = {
@@ -137,7 +148,6 @@
 
         let activePart = null;
         let startPos = { x: 0, y: 0 };
-        let currentPos = { x: 0, y: 0 };
 
         function startDrag(e) {
             e.preventDefault();
@@ -145,25 +155,22 @@
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
             
-            // 現在のtransformの値を取得
             const style = window.getComputedStyle(activePart);
             const matrix = new WebKitCSSMatrix(style.transform);
             
             startPos.x = clientX - matrix.m41;
             startPos.y = clientY - matrix.m42;
+            
+            activePart.style.transition = "none"; // ドラッグ中はアニメーションを消す
         }
 
         function moveDrag(e) {
             if (!activePart) return;
             e.preventDefault();
-
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            
             const x = clientX - startPos.x;
             const y = clientY - startPos.y;
-
-            // top/leftではなくtransformを使うことで爆速になります
             activePart.style.transform = `translate(${x}px, ${y}px)`;
         }
 
@@ -179,6 +186,15 @@
         document.addEventListener('mouseup', endDrag);
         document.addEventListener('touchend', endDrag);
 
+        // やり直しボタンの処理
+        function resetGame() {
+            document.querySelectorAll('.part').forEach(part => {
+                part.style.transition = "transform 0.3s ease-out"; // ふわっと戻るように
+                part.style.transform = `translate(0px, 0px)`;
+            });
+            document.getElementById('result').innerText = '完成度: -- %';
+        }
+
         function calculateScore() {
             let totalDiff = 0;
             const board = document.getElementById('game-board').getBoundingClientRect();
@@ -188,7 +204,6 @@
                 const rect = el.getBoundingClientRect();
                 const curX = (rect.left - board.left + rect.width / 2) / board.width;
                 const curY = (rect.top - board.top + rect.height / 2) / board.height;
-
                 const dx = curX - correctRatio[id].x;
                 const dy = curY - correctRatio[id].y;
                 totalDiff += Math.sqrt(dx * dx + dy * dy);
