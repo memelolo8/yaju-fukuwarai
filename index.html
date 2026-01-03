@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>究極の福笑いゲーム - 完全版</title>
+    <title>究極の福笑い - 超スムーズ版</title>
     <style>
         body {
             background-color: #1a1a1a;
@@ -14,10 +14,11 @@
             align-items: center;
             margin: 0;
             padding: 10px;
-            overscroll-behavior: none;
+            overflow: hidden; /* 画面全体の揺れを防止 */
+            touch-action: none;
         }
 
-        h1 { font-size: 1.2rem; margin: 10px 0; color: #ffcc00; text-align: center; }
+        h1 { font-size: 1.2rem; margin: 10px 0; color: #ffcc00; }
 
         .main-layout {
             display: flex;
@@ -41,7 +42,6 @@
             border-radius: 15px;
             overflow: hidden;
             background-image: radial-gradient(circle, #444 0%, #222 100%);
-            touch-action: none; /* スマホのスクロールを完全に止める */
         }
 
         .sample-container {
@@ -53,7 +53,7 @@
             border: 2px dashed #666;
             text-align: center;
         }
-        #sample-image { width: 100%; border-radius: 5px; opacity: 0.9; }
+        #sample-image { width: 100%; border-radius: 5px; pointer-events: none; }
 
         #base-face {
             position: absolute;
@@ -69,15 +69,16 @@
             position: absolute;
             cursor: grab;
             z-index: 10;
-            user-select: none;
-            touch-action: none;
             width: 18%;
-            /* PCでの画像の標準ドラッグ機能を無効化 */
+            /* 動きを滑らかにする魔法のプロパティ */
+            touch-action: none;
+            user-select: none;
             -webkit-user-drag: none;
+            will-change: transform;
         }
         .part:active { cursor: grabbing; z-index: 100; }
 
-        /* 初期位置：少し散らす */
+        /* 初期位置 */
         #eye_left   { top: 5%; left: 5%; }
         #eye_right  { top: 5%; left: 25%; }
         #brow_left  { top: 5%; left: 45%; }
@@ -93,11 +94,8 @@
             background: linear-gradient(to bottom, #ffcc00, #ff9900);
             border: none;
             border-radius: 30px;
-            color: #000;
             cursor: pointer;
-            box-shadow: 0 4px #b36b00;
         }
-        button:active { transform: translateY(2px); box-shadow: 0 2px #b36b00; }
         #result { font-size: 1.8rem; margin-top: 10px; color: #00ffcc; font-weight: bold; }
     </style>
 </head>
@@ -138,49 +136,45 @@
         };
 
         let activePart = null;
-        let offset = { x: 0, y: 0 };
-
-        function getEventPos(e) {
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            return { x: clientX, y: clientY };
-        }
+        let startPos = { x: 0, y: 0 };
+        let currentPos = { x: 0, y: 0 };
 
         function startDrag(e) {
-            // これが重要！ブラウザの画像保存機能をブロックする
-            if (e.cancelable) e.preventDefault();
-            
+            e.preventDefault();
             activePart = e.target;
-            const pos = getEventPos(e);
-            const rect = activePart.getBoundingClientRect();
-            offset.x = pos.x - rect.left;
-            offset.y = pos.y - rect.top;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            // 現在のtransformの値を取得
+            const style = window.getComputedStyle(activePart);
+            const matrix = new WebKitCSSMatrix(style.transform);
+            
+            startPos.x = clientX - matrix.m41;
+            startPos.y = clientY - matrix.m42;
         }
 
         function moveDrag(e) {
             if (!activePart) return;
-            // ドラッグ中のスクロールを防止
-            if (e.cancelable) e.preventDefault();
+            e.preventDefault();
 
-            const pos = getEventPos(e);
-            const board = document.getElementById('game-board').getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
             
-            let x = pos.x - board.left - offset.x;
-            let y = pos.y - board.top - offset.y;
-            
-            activePart.style.left = x + 'px';
-            activePart.style.top = y + 'px';
+            const x = clientX - startPos.x;
+            const y = clientY - startPos.y;
+
+            // top/leftではなくtransformを使うことで爆速になります
+            activePart.style.transform = `translate(${x}px, ${y}px)`;
         }
 
         function endDrag() { activePart = null; }
 
-        // マウスとタッチの両方のイベントを設定
         document.querySelectorAll('.part').forEach(part => {
             part.addEventListener('mousedown', startDrag);
             part.addEventListener('touchstart', startDrag, {passive: false});
         });
 
-        document.addEventListener('mousemove', moveDrag);
+        document.addEventListener('mousemove', moveDrag, {passive: false});
         document.addEventListener('touchmove', moveDrag, {passive: false});
         document.addEventListener('mouseup', endDrag);
         document.addEventListener('touchend', endDrag);
@@ -188,9 +182,8 @@
         function calculateScore() {
             let totalDiff = 0;
             const board = document.getElementById('game-board').getBoundingClientRect();
-            const parts = Object.keys(correctRatio);
-
-            parts.forEach(id => {
+            
+            Object.keys(correctRatio).forEach(id => {
                 const el = document.getElementById(id);
                 const rect = el.getBoundingClientRect();
                 const curX = (rect.left - board.left + rect.width / 2) / board.width;
@@ -201,12 +194,10 @@
                 totalDiff += Math.sqrt(dx * dx + dy * dy);
             });
 
-            const avgDiff = totalDiff / parts.length;
-            let score = Math.max(0, 100 - Math.floor(avgDiff * 500));
+            const score = Math.max(0, 100 - Math.floor((totalDiff / 6) * 500));
             document.getElementById('result').innerText = `完成度: ${score}%`;
-            if(score === 100) alert("完璧です！おめでとう！");
+            if(score === 100) alert("完璧です！");
         }
     </script>
 </body>
 </html>
-
