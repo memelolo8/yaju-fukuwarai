@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>究極の福笑い - スマホ対応版</title>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: white;
+            font-family: 'Meiryo', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 10px;
+            /* スマホで引っ張った時に画面が動かないようにする */
+            touch-action: none;
+        }
+
+        h1 { font-size: 1.2rem; margin: 10px 0; color: #ffcc00; }
+
+        /* レイアウト：スマホでは縦並び、PCでは横並び */
+        .main-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            width: 100%;
+        }
+        @media (min-width: 900px) {
+            .main-layout { flex-direction: row; align-items: flex-start; }
+        }
+
+        /* ゲーム盤：画面幅に合わせてリサイズ */
+        #game-board {
+            position: relative;
+            width: 95vw;
+            height: 95vw;
+            max-width: 600px;
+            max-height: 600px;
+            background: #333;
+            border: 4px solid #555;
+            border-radius: 15px;
+            overflow: hidden;
+            background-image: radial-gradient(circle, #444 0%, #222 100%);
+        }
+
+        /* 見本エリア */
+        .sample-container {
+            width: 80vw;
+            max-width: 250px;
+            background: #2a2a2a;
+            padding: 10px;
+            border-radius: 10px;
+            border: 2px dashed #666;
+            text-align: center;
+        }
+        #sample-image { width: 100%; border-radius: 5px; }
+
+        /* 土台の顔 */
+        #base-face {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 95%;
+            opacity: 0.8;
+            pointer-events: none;
+        }
+
+        /* パーツ設定 */
+        .part {
+            position: absolute;
+            cursor: grab;
+            z-index: 10;
+            user-select: none;
+            touch-action: none; /* スマホのスクロールを無効化 */
+            width: 18%; /* パーツサイズも画面比率に */
+        }
+
+        /* 各パーツの初期位置（画面下部などに散らす） */
+        #eye_left   { top: 5%; left: 5%; }
+        #eye_right  { top: 5%; left: 25%; }
+        #brow_left  { top: 5%; left: 45%; }
+        #brow_right { top: 5%; left: 65%; }
+        #nose       { top: 5%; left: 82%; width: 12%; }
+        #mouth      { top: 15%; left: 5%; width: 22%; }
+
+        .controls { margin-top: 15px; }
+        button {
+            padding: 12px 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            background: linear-gradient(to bottom, #ffcc00, #ff9900);
+            border: none;
+            border-radius: 30px;
+            color: #000;
+        }
+        #result { font-size: 2rem; margin-top: 10px; color: #00ffcc; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>福笑いゲーム</h1>
+    
+    <div class="main-layout">
+        <div id="game-board">
+            <img src="base.png" id="base-face">
+            <img src="eye_left.png"   id="eye_left"   class="part">
+            <img src="eye_right.png"  id="eye_right"  class="part">
+            <img src="brow_left.png"  id="brow_left"  class="part">
+            <img src="brow_right.png" id="brow_right" class="part">
+            <img src="nose.png"       id="nose"       class="part">
+            <img src="mouth.png"      id="mouth"      class="part">
+        </div>
+
+        <div class="sample-container">
+            <h3 style="margin:0; font-size: 0.9rem;">お手本</h3>
+            <img src="sample.png" id="sample-image">
+        </div>
+    </div>
+
+    <div class="controls">
+        <button onclick="calculateScore()">採点！</button>
+        <div id="result">完成度: -- %</div>
+    </div>
+
+    <script>
+        // 正解位置 (0.0〜1.0の比率で管理すると画面サイズが変わっても正確)
+        const correctRatio = {
+            eye_left:   { x: 0.4, y: 0.45 },
+            eye_right:  { x: 0.6, y: 0.45 },
+            brow_left:  { x: 0.4, y: 0.38 },
+            brow_right: { x: 0.6, y: 0.38 },
+            nose:       { x: 0.5, y: 0.6 },
+            mouth:      { x: 0.5, y: 0.75 }
+        };
+
+        let activePart = null;
+        let offset = { x: 0, y: 0 };
+
+        // マウスとタッチの両方に対応
+        function startDrag(e) {
+            activePart = e.target;
+            const rect = activePart.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            offset.x = clientX - rect.left;
+            offset.y = clientY - rect.top;
+        }
+
+        function moveDrag(e) {
+            if (!activePart) return;
+            e.preventDefault();
+            const board = document.getElementById('game-board').getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            let x = clientX - board.left - offset.x;
+            let y = clientY - board.top - offset.y;
+            
+            activePart.style.left = x + 'px';
+            activePart.style.top = y + 'px';
+        }
+
+        function endDrag() { activePart = null; }
+
+        document.querySelectorAll('.part').forEach(part => {
+            part.addEventListener('mousedown', startDrag);
+            part.addEventListener('touchstart', startDrag, {passive: false});
+        });
+
+        document.addEventListener('mousemove', moveDrag);
+        document.addEventListener('touchmove', moveDrag, {passive: false});
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
+
+        function calculateScore() {
+            let totalDiff = 0;
+            const board = document.getElementById('game-board').getBoundingClientRect();
+            const parts = Object.keys(correctRatio);
+
+            parts.forEach(id => {
+                const el = document.getElementById(id);
+                const rect = el.getBoundingClientRect();
+                // 中心座標を比率に変換
+                const curX = (rect.left - board.left + rect.width / 2) / board.width;
+                const curY = (rect.top - board.top + rect.height / 2) / board.height;
+
+                const dx = curX - correctRatio[id].x;
+                const dy = curY - correctRatio[id].y;
+                totalDiff += Math.sqrt(dx * dx + dy * dy);
+            });
+
+            const avgDiff = totalDiff / parts.length;
+            let score = Math.max(0, 100 - Math.floor(avgDiff * 400)); // 採点係数調整
+            document.getElementById('result').innerText = `完成度: ${score}%`;
+            if(score === 100) alert("完璧です！");
+        }
+    </script>
+</body>
+</html>
